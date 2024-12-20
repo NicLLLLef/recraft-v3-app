@@ -1,56 +1,79 @@
 import streamlit as st
-from openai import OpenAI
+import replicate
+import requests
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
-)
+# Set page config to include tab title
+st.set_page_config(page_title="recraft-v3 generator")
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+
+# User ID input and session creation
+st.title("Image generator")
+checkbox_1 = st.checkbox("Funny mode")
+
+secret_input = st.text_input("Enter replicate API key:", type="password")
+if not secret_input:
+    st.info("Please enter replicate token to continue.", icon="🗝️")
 else:
+    api = replicate.Client(api_token=secret_input)
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+    def get_flux_image(prompt: str):
+        output = api.run("recraft-ai/recraft-v3",
+                    input={
+                        "size": "1365x1024",
+                        "style": "any",
+                        "prompt": prompt
+                })
+        return output
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    # Function to handle user input
+    def handle_input():
+        user_input = st.session_state.user_input
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        st.session_state.user_input = ""  # Clear input field after submitting
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+        if user_input:
+            # Append user's message to the chat history
+            st.session_state["messages"].append({
+                "role": "user",
+                "content": user_input
+            })
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+            # Generate a response
+            if checkbox_1:
+                response = get_flux_image(
+                    f"Make a very crazily funny version of {user_input}")
+            else:
+                response = get_flux_image(user_input)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+            if response:
+                # Append the response to the chat history
+                st.session_state["messages"].append({
+                    "role": "bot",
+                    "content": response,
+                })
+            else:
+                st.session_state["messages"].append({
+                    "role":
+                    "bot",
+                    "content":
+                    "An error occurred while generating the image.",
+                })
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+
+    # Display chat messages from the history
+    for message in st.session_state["messages"]:
+        if message["role"] == "user":
+            st.write(f"**You:** {message['content']}")
+        else:
+            image_url = message['content']
+            response = requests.get(image_url)
+            image_data = response.content
+            st.write(f"**Assistant:** {image_url}")
+            st.image(image_data)
+
+    # Input box for user to type a message
+    st.text_input("Type your message here:",
+                key="user_input",
+                on_change=handle_input)

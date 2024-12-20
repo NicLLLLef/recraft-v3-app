@@ -1,8 +1,8 @@
-# 💬 Chatbot template
+# 💬 Simple image generation app
 
-A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
+A simple Streamlit app that shows how to build a image generation bot using recraft-v3 model through replicate.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://recraft-v3-dmitry.streamlit.app/)
 
 ### How to run it on your own machine
 
@@ -17,3 +17,5 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
    ```
    $ streamlit run streamlit_app.py
    ```
+
+3. Obtain [replicate API token](https://replicate.com/account/api-tokens).
