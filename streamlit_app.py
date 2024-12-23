@@ -8,6 +8,7 @@ st.set_page_config(page_title="recraft-v3 generator")
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
+
 # User ID input and session creation
 st.title("Image generator")
 checkbox_1 = st.checkbox("Funny mode")
